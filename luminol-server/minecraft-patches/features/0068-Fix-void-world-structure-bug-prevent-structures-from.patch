@@ -1,0 +1,130 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Mokzern <user@example.com>
+Date: Thu, 2 Oct 2025 23:22:12 +0800
+Subject: [PATCH] Fix void world structure bug - prevent structures from
+ spawning at world bottom
+
+
+diff --git a/net/minecraft/world/level/chunk/ChunkGenerator.java b/net/minecraft/world/level/chunk/ChunkGenerator.java
+index 5e517d36bb5f16bcd1cbab97d749b2c18cef9df8..4e7262f43ab0ea3487186bc70f0fa80549748088 100644
+--- a/net/minecraft/world/level/chunk/ChunkGenerator.java
++++ b/net/minecraft/world/level/chunk/ChunkGenerator.java
+@@ -374,9 +374,24 @@ public abstract class ChunkGenerator {
+                                 level.setCurrentlyGenerating(supplier);
+                                 structureManager.startsForStructure(sectionPos, structure)
+                                     .forEach(
+-                                        structureStart -> structureStart.placeInChunk(
+-                                            level, structureManager, this, worldgenRandom, getWritableArea(chunk), pos
+-                                        )
++                                        structureStart -> {
++                                            // Luminol start - prevent structure placement at world bottom (void world bug)
++                                            if (me.earthme.luminol.config.modules.fixes.VoidWorldStructureFixConfig.enabled) {
++                                                String worldName = level.getLevel().getWorld().getName();
++                                                if (me.earthme.luminol.config.modules.fixes.VoidWorldStructureFixConfig.affectedWorlds.contains(worldName)) {
++                                                    BoundingBox boundingBox = structureStart.getBoundingBox();
++                                                    int worldMinY = level.getMinY();
++                                                    int minAllowedY = worldMinY + me.earthme.luminol.config.modules.fixes.VoidWorldStructureFixConfig.minDistanceFromBottom;
++                                                    if (boundingBox.minY() < minAllowedY) {
++                                                        return;
++                                                    }
++                                                }
++                                            }
++                                            // Luminol end
++                                            structureStart.placeInChunk(
++                                                level, structureManager, this, worldgenRandom, getWritableArea(chunk), pos
++                                            );
++                                        }
+                                     );
+                             } catch (Exception var29) {
+                                 CrashReport crashReport = CrashReport.forThrowable(var29, "Feature placement");
+@@ -647,6 +662,18 @@ public abstract class ChunkGenerator {
+                 return true;
+             }
+             // CraftBukkit end
++            // Luminol start - prevent structure generation at world bottom (void world bug)
++            if (me.earthme.luminol.config.modules.fixes.VoidWorldStructureFixConfig.enabled) {
++                String worldName = structureManager.level.getMinecraftWorld().getWorld().getName();
++                if (me.earthme.luminol.config.modules.fixes.VoidWorldStructureFixConfig.affectedWorlds.contains(worldName)) {
++                    int worldMinY = chunk.getMinY();
++                    int minAllowedY = worldMinY + me.earthme.luminol.config.modules.fixes.VoidWorldStructureFixConfig.minDistanceFromBottom;
++                    if (box.minY() < minAllowedY) {
++                        return true;
++                    }
++                }
++            }
++            // Luminol end
+             structureManager.setStartForStructure(sectionPos, structure, structureStart, chunk);
+             return true;
+         } else {
+diff --git a/net/minecraft/world/level/levelgen/structure/structures/BuriedTreasurePieces.java b/net/minecraft/world/level/levelgen/structure/structures/BuriedTreasurePieces.java
+index f515f7c881d597072db226f60cfae2d7ebe89ea4..b7ce52023889ed566d8c498fd7a4f95a9c81c458 100644
+--- a/net/minecraft/world/level/levelgen/structure/structures/BuriedTreasurePieces.java
++++ b/net/minecraft/world/level/levelgen/structure/structures/BuriedTreasurePieces.java
+@@ -42,6 +42,18 @@ public class BuriedTreasurePieces {
+             BlockPos pos
+         ) {
+             int height = level.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, this.boundingBox.minX(), this.boundingBox.minZ());
++            // Luminol start - prevent buried treasure from spawning at world bottom in void worlds
++            if (me.earthme.luminol.config.modules.fixes.VoidWorldStructureFixConfig.enabled) {
++                String worldName = level.getLevel().getWorld().getName();
++                if (me.earthme.luminol.config.modules.fixes.VoidWorldStructureFixConfig.affectedWorlds.contains(worldName)) {
++                    int worldMinY = level.getMinY();
++                    int minAllowedY = worldMinY + me.earthme.luminol.config.modules.fixes.VoidWorldStructureFixConfig.minDistanceFromBottom;
++                    if (height < minAllowedY) {
++                        return;
++                    }
++                }
++            }
++            // Luminol end
+             BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos(this.boundingBox.minX(), height, this.boundingBox.minZ());
+ 
+             while (mutableBlockPos.getY() > level.getMinY()) {
+diff --git a/net/minecraft/world/level/levelgen/structure/structures/OceanRuinPieces.java b/net/minecraft/world/level/levelgen/structure/structures/OceanRuinPieces.java
+index 89ede5a7f76ec48c94aa8c913438df139148b1f9..46a6b35182c2afa89d712b3813e332f7a6cdfcd3 100644
+--- a/net/minecraft/world/level/levelgen/structure/structures/OceanRuinPieces.java
++++ b/net/minecraft/world/level/levelgen/structure/structures/OceanRuinPieces.java
+@@ -353,6 +353,18 @@ public class OceanRuinPieces {
+             BlockPos pos
+         ) {
+             int height = level.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, this.templatePosition.getX(), this.templatePosition.getZ());
++            // Luminol start - prevent ocean ruins from spawning at world bottom in void worlds
++            if (me.earthme.luminol.config.modules.fixes.VoidWorldStructureFixConfig.enabled) {
++                String worldName = level.getLevel().getWorld().getName();
++                if (me.earthme.luminol.config.modules.fixes.VoidWorldStructureFixConfig.affectedWorlds.contains(worldName)) {
++                    int worldMinY = level.getMinY();
++                    int minAllowedY = worldMinY + me.earthme.luminol.config.modules.fixes.VoidWorldStructureFixConfig.minDistanceFromBottom;
++                    if (height < minAllowedY) {
++                        return;
++                    }
++                }
++            }
++            // Luminol end
+             this.templatePosition = new BlockPos(this.templatePosition.getX(), height, this.templatePosition.getZ());
+             BlockPos blockPos = StructureTemplate.transform(
+                     new BlockPos(this.template.getSize().getX() - 1, 0, this.template.getSize().getZ() - 1),
+diff --git a/net/minecraft/world/level/levelgen/structure/structures/ShipwreckPieces.java b/net/minecraft/world/level/levelgen/structure/structures/ShipwreckPieces.java
+index 83c7e341cb5fd4eee94d52ef4576e64fd8d1c32d..ef570732c50a44018a708dedf44f67849af94561 100644
+--- a/net/minecraft/world/level/levelgen/structure/structures/ShipwreckPieces.java
++++ b/net/minecraft/world/level/levelgen/structure/structures/ShipwreckPieces.java
+@@ -165,7 +165,20 @@ public class ShipwreckPieces {
+                     i1 /= i2;
+                 }
+ 
+-                this.adjustPositionHeight(this.isBeached ? this.calculateBeachedPosition(i, random) : i1);
++                // Luminol start - prevent shipwrecks from spawning at world bottom in void worlds
++                int targetHeight = this.isBeached ? this.calculateBeachedPosition(i, random) : i1;
++                if (me.earthme.luminol.config.modules.fixes.VoidWorldStructureFixConfig.enabled) {
++                    String worldName = level.getLevel().getWorld().getName();
++                    if (me.earthme.luminol.config.modules.fixes.VoidWorldStructureFixConfig.affectedWorlds.contains(worldName)) {
++                        int worldMinY = level.getMinY();
++                        int minAllowedY = worldMinY + me.earthme.luminol.config.modules.fixes.VoidWorldStructureFixConfig.minDistanceFromBottom;
++                        if (targetHeight < minAllowedY) {
++                            return;
++                        }
++                    }
++                }
++                this.adjustPositionHeight(targetHeight);
++                // Luminol end
+                 super.postProcess(level, structureManager, generator, random, box, chunkPos, pos);
+             }
+         }

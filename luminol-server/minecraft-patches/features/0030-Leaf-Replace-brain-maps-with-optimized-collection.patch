@@ -8,7 +8,7 @@ As part of: Leaf (https://github.com/Winds-Studio/Leaf/blob/7f3e240bbe0970683c40
 Licensed under: MIT (https://github.com/Winds-Studio/Leaf/blob/7f3e240bbe0970683c40279a7a65f0fde47503b6/licenses/MIT.txt)
 
 diff --git a/net/minecraft/world/entity/ai/Brain.java b/net/minecraft/world/entity/ai/Brain.java
-index c589e18b68e45d5991291db3a0bdd833588ce945..ff17bda274989d6b94cea280378a6e5de4f84d4b 100644
+index 53136533a8cab57739ed01a0a20f06332ebd986e..7b5535050803f93ed42963ea69dbfd67b5133386 100644
 --- a/net/minecraft/world/entity/ai/Brain.java
 +++ b/net/minecraft/world/entity/ai/Brain.java
 @@ -45,14 +45,14 @@ public class Brain<E extends LivingEntity> {
